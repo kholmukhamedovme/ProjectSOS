@@ -8,18 +8,41 @@ import static dagger.internal.Preconditions.checkNotNull;
 
 public final class MainInteractor {
 
-    private final MainRepository mRepository;
+    private final AuthenticationRepository mRepository;
 
-    public MainInteractor(MainRepository repository) {
-        mRepository = checkNotNull(repository, "MainRepository is required");
+    /**
+     * Конструктор
+     *
+     * @param authenticationRepository репозиторий для аутентификации
+     */
+    public MainInteractor(AuthenticationRepository authenticationRepository) {
+        mRepository = checkNotNull(authenticationRepository, "AuthenticationRepository is required");
     }
 
+    /**
+     * Следить за состоянием Bluetooth
+     *
+     * @return возвращает горячий источник
+     */
     public Observable<BluetoothState> traceBluetoothState() {
         return mRepository.traceBluetoothState();
     }
 
+    /**
+     * Аутентифицировать устройство
+     *
+     * @return возвращает завершаемый источник
+     */
     public Completable authenticateDevice(String macAddress) {
         return mRepository.authenticateDevice(macAddress);
+    }
+
+    /**
+     * Правильно выключиться
+     * Отписаться от горячих источников
+     */
+    public void gracefullyShutdown() {
+        mRepository.gracefullyShutdown();
     }
 
 }

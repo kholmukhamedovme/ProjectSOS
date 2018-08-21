@@ -4,10 +4,10 @@ import android.support.annotation.NonNull;
 
 import com.arellomobile.mvp.InjectViewState;
 
+import io.reactivex.Completable;
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.schedulers.Schedulers;
 import ru.projectsos.projectsos.domain.MainInteractor;
-import ru.projectsos.projectsos.models.domain.BluetoothState;
 import ru.projectsos.projectsos.presentation.util.BasePresenter;
 import ru.projectsos.projectsos.presentation.view.MainView;
 
@@ -36,33 +36,34 @@ public final class MainPresenter extends BasePresenter<MainView> {
                 mInteractor.traceBluetoothState()
                         .subscribeOn(Schedulers.io())
                         .observeOn(AndroidSchedulers.mainThread())
-                        .subscribe(this::onStateChanges)
+                        .flatMapCompletable(state -> {
+                            switch (state) {
+                                case READY:
+                                    return mInteractor.authenticateDevice(mMacAddress);
+                                case BLUETOOTH_NOT_AVAILABLE:
+                                    getViewState().informNoBluetoothAvailable();
+                                    return Completable.complete();
+                                case LOCATION_PERMISSION_NOT_GRANTED:
+                                    getViewState().informGrantLocationPermission();
+                                    return Completable.complete();
+                                case BLUETOOTH_NOT_ENABLED:
+                                    getViewState().informEnableBluetooth();
+                                    return Completable.complete();
+                                case LOCATION_SERVICES_NOT_ENABLED:
+                                    getViewState().informEnableLocationServices();
+                                    return Completable.complete();
+                                default:
+                                    return Completable.complete();
+                            }
+                        })
+                        .subscribe()
         );
     }
 
-    private void onStateChanges(BluetoothState state) {
-        switch (state) {
-            case READY:
-                getCompositeDisposable().add(
-                        mInteractor.authenticateDevice(mMacAddress)
-                                .subscribeOn(Schedulers.io())
-                                .observeOn(AndroidSchedulers.mainThread())
-                                .subscribe()
-                );
-                break;
-            case BLUETOOTH_NOT_AVAILABLE:
-                getViewState().informNoBluetoothAvailable();
-                break;
-            case LOCATION_PERMISSION_NOT_GRANTED:
-                getViewState().informGrantLocationPermission();
-                break;
-            case BLUETOOTH_NOT_ENABLED:
-                getViewState().informEnableBluetooth();
-                break;
-            case LOCATION_SERVICES_NOT_ENABLED:
-                getViewState().informEnableLocationServices();
-                break;
-        }
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        mInteractor.gracefullyShutdown();
     }
 
 }

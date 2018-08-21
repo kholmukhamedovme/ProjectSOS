@@ -1,6 +1,7 @@
 package ru.projectsos.projectsos.models.converter;
 
 import com.polidea.rxandroidble2.RxBleClient;
+
 import ru.projectsos.projectsos.models.domain.BluetoothState;
 
 public final class RxBleClientStateToBluetoothStateConverter

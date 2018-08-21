@@ -4,7 +4,7 @@ import io.reactivex.Completable;
 import io.reactivex.Observable;
 import ru.projectsos.projectsos.models.domain.BluetoothState;
 
-public interface MainRepository {
+public interface AuthenticationRepository {
 
     /**
      * Следить за состоянием Bluetooth
@@ -14,10 +14,16 @@ public interface MainRepository {
     Observable<BluetoothState> traceBluetoothState();
 
     /**
-     * Авторизовать устройство
+     * Аутентифицировать устройство
      *
      * @return возвращает завершаемый источник
      */
     Completable authenticateDevice(String macAddress);
+
+    /**
+     * Правильно выключиться
+     * Отписаться от горячих источников
+     */
+    void gracefullyShutdown();
 
 }
