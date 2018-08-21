@@ -1,0 +1,24 @@
+<resources>
+    <string name="app_name">Project SOS</string>
+    <string name="no_bluetooth_available_dialog_title">Нет Bluetooth адаптера</string>
+    <string name="no_bluetooth_available_dialog_message">Не обнаружено Bluetooth адаптера в смартфоне. Дальнейшая работа приложения невозможна.</string>
+    <string name="no_bluetooth_available_dialog_button">Выйти</string>
+    <string name="enable_bluetooth_dialog_title">Выключен Bluetooth адаптер</string>
+    <string name="enable_bluetooth_dialog_message">Не включен Bluetooth адаптер. Для работы приложения необходимо его включить.</string>
+    <string name="enable_bluetooth_dialog_button">Включить</string>
+    <string name="enable_bluetooth_canceled_dialog_title">Выключен Bluetooth адаптер</string>
+    <string name="enable_bluetooth_canceled_dialog_message">Вы не включили Bluetooth адаптер. Дальнейшая работа приложения невозможна.</string>
+    <string name="enable_bluetooth_canceled_dialog_button">Выйти</string>
+    <string name="grant_location_permission_dialog_title">Нужен доступ к геолокации</string>
+    <string name="grant_location_permission_dialog_message">Умный браслет работает по технологии Bluetooth Low Energy. Для подключения смартфона к умному браслету необходимо разрешить доступ к геолокации.</string>
+    <string name="grant_location_permission_dialog_button">Разрешить</string>
+    <string name="grant_location_permission_denied_dialog_title">Нужен доступ к геолокации</string>
+    <string name="grant_location_permission_denied_dialog_message">Вы запретили доступ к геолокации. Дальнейшая работа приложения невозможна.</string>
+    <string name="grant_location_permission_denied_dialog_button">Выйти</string>
+    <string name="enable_location_services_dialog_title">Выключены сервисы геолокации</string>
+    <string name="enable_location_services_dialog_message">Умный браслет работает по технологии Bluetooth Low Energy. Для подключения смартфона к умному браслету необходимо включить сервисы геолокации.</string>
+    <string name="enable_location_services_dialog_button">Включить</string>
+    <string name="enable_location_services_canceled_dialog_title">Выключены сервисы геолокации</string>
+    <string name="enable_location_services_canceled_dialog_message">Вы не включили сервисы геолокации. Дальнейшая работа приложения невозможна.</string>
+    <string name="enable_location_services_canceled_dialog_button">Выйти</string>
+</resources>

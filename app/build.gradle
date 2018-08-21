@@ -1,0 +1,64 @@
+apply plugin: "com.android.application"
+
+//region Versions
+def SUPPORT_LIBRARY_VERSION = "27.1.1"
+def CONSTRAINT_LAYOUT_VERSION = "1.1.2"
+def APACHE_COMMONS_LANG3 = "3.8"
+def DAGGER_VERSION = "2.16"
+def MOXY_VERSION = "1.5.5"
+def RXJAVA_VERSION = "2.1.14"
+def RXANDROID_VERSION = "2.0.2"
+def RXBLE_VERSION = "1.7.0"
+def RX_REPLAYING_SHARE_VERSION = "2.0.1"
+//endregion
+
+android {
+    compileSdkVersion 27
+
+    defaultConfig {
+        applicationId "ru.projectsos.projectsos"
+
+        minSdkVersion 21
+        targetSdkVersion 27
+        versionCode 1
+        versionName "1.0"
+
+        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
+        }
+    }
+
+    compileOptions {
+        targetCompatibility 1.8
+        sourceCompatibility 1.8
+    }
+}
+
+dependencies {
+    implementation fileTree(dir: "libs", include: ["*.jar"])
+
+    implementation "com.android.support:appcompat-v7:$SUPPORT_LIBRARY_VERSION"
+    implementation "com.android.support.constraint:constraint-layout:$CONSTRAINT_LAYOUT_VERSION"
+    implementation "org.apache.commons:commons-lang3:$APACHE_COMMONS_LANG3"
+
+    // Dagger
+    implementation "com.google.dagger:dagger:$DAGGER_VERSION"
+    annotationProcessor "com.google.dagger:dagger-compiler:$DAGGER_VERSION"
+
+    // Moxy
+    implementation "com.arello-mobile:moxy:$MOXY_VERSION"
+    implementation "com.arello-mobile:moxy-android:$MOXY_VERSION"
+    implementation "com.arello-mobile:moxy-app-compat:$MOXY_VERSION"
+    annotationProcessor "com.arello-mobile:moxy-compiler:$MOXY_VERSION"
+
+    // Rx
+    implementation "io.reactivex.rxjava2:rxjava:$RXJAVA_VERSION"
+    implementation "io.reactivex.rxjava2:rxandroid:$RXANDROID_VERSION"
+    implementation "com.polidea.rxandroidble2:rxandroidble:$RXBLE_VERSION"
+    implementation "com.jakewharton.rx2:replaying-share:$RX_REPLAYING_SHARE_VERSION"
+}
