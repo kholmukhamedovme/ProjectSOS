@@ -21,4 +21,8 @@
     <string name="enable_location_services_canceled_dialog_title">Выключены сервисы геолокации</string>
     <string name="enable_location_services_canceled_dialog_message">Вы не включили сервисы геолокации. Дальнейшая работа приложения невозможна.</string>
     <string name="enable_location_services_canceled_dialog_button">Выйти</string>
+    <string name="device_state_connecting">Подключается</string>
+    <string name="device_state_connected">Подключен</string>
+    <string name="device_state_disconnecting">Разъединяется</string>
+    <string name="device_state_disconnected">Разъединен</string>
 </resources>

@@ -19,7 +19,9 @@ import io.reactivex.subjects.PublishSubject;
 import ru.projectsos.projectsos.domain.AuthenticationRepository;
 import ru.projectsos.projectsos.models.converter.AbstractConverter;
 import ru.projectsos.projectsos.models.converter.RxBleClientStateToBluetoothStateConverter;
+import ru.projectsos.projectsos.models.converter.RxBleConnectionStateToDeviceStateConverter;
 import ru.projectsos.projectsos.models.domain.BluetoothState;
+import ru.projectsos.projectsos.models.domain.DeviceState;
 
 import static dagger.internal.Preconditions.checkNotNull;
 import static ru.projectsos.projectsos.data.Constants.AUTH_BYTE;
@@ -39,7 +41,8 @@ public final class AuthenticationRepositoryImpl implements AuthenticationReposit
 
     private final RxBleClient mRxBleClient;
     private final SharedPreferences mSharedPreferences;
-    private final AbstractConverter<RxBleClient.State, BluetoothState> mStateConverter;
+    private final AbstractConverter<RxBleClient.State, BluetoothState> mBluetoothStateConverter;
+    private final AbstractConverter<RxBleConnection.RxBleConnectionState, DeviceState> mDeviceStateConverter;
 
     private Observable<RxBleClient.State> mStateChangesObservable;
     private Observable<RxBleConnection> mConnectionObservable;
@@ -55,7 +58,9 @@ public final class AuthenticationRepositoryImpl implements AuthenticationReposit
                                         @NonNull SharedPreferences sharedPreferences) {
         mRxBleClient = checkNotNull(rxBleClient, "RxBleClient is required");
         mSharedPreferences = checkNotNull(sharedPreferences, "SharedPreferences is required");
-        mStateConverter = new RxBleClientStateToBluetoothStateConverter();
+
+        mBluetoothStateConverter = new RxBleClientStateToBluetoothStateConverter();
+        mDeviceStateConverter = new RxBleConnectionStateToDeviceStateConverter();
     }
 
     /**
@@ -67,7 +72,7 @@ public final class AuthenticationRepositoryImpl implements AuthenticationReposit
 
         return mStateChangesObservable
                 .startWith(mRxBleClient.getState())
-                .map(mStateConverter::convert);
+                .map(mBluetoothStateConverter::convert);
     }
 
     /**
@@ -88,8 +93,19 @@ public final class AuthenticationRepositoryImpl implements AuthenticationReposit
      * {@inheritDoc}
      */
     @Override
-    public void gracefullyShutdown() {
-        DISCONNECT_TRIGGER_SUBJECT.onNext(true);
+    public Observable<DeviceState> traceDeviceState(String macAddress) {
+        initDevice(macAddress);
+
+        return mDevice.observeConnectionStateChanges()
+                .map(mDeviceStateConverter::convert);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Completable gracefullyShutdown() {
+        return Completable.fromAction(() -> DISCONNECT_TRIGGER_SUBJECT.onNext(true));
     }
 
     /**
@@ -110,13 +126,24 @@ public final class AuthenticationRepositoryImpl implements AuthenticationReposit
      * @param macAddress MAC адрес
      */
     private void initConnectionObservable(String macAddress) {
-        if (mDevice == null || mConnectionObservable == null) {
-            mDevice = mRxBleClient.getBleDevice(macAddress);
+        initDevice(macAddress);
 
+        if (mConnectionObservable == null) {
             mConnectionObservable = mDevice
                     .establishConnection(false)
                     .takeUntil(DISCONNECT_TRIGGER_SUBJECT)
                     .compose(ReplayingShare.instance());
+        }
+    }
+
+    /**
+     * Инициализировать объект устройства
+     *
+     * @param macAddress MAC адрес
+     */
+    private void initDevice(String macAddress) {
+        if (mDevice == null) {
+            mDevice = mRxBleClient.getBleDevice(macAddress);
         }
     }
 

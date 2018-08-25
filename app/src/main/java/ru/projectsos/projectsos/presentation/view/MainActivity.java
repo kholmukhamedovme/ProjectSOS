@@ -11,6 +11,7 @@ import android.support.annotation.NonNull;
 import android.support.annotation.StringRes;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AlertDialog;
+import android.widget.TextView;
 
 import com.arellomobile.mvp.MvpAppCompatActivity;
 import com.arellomobile.mvp.presenter.InjectPresenter;
@@ -34,6 +35,8 @@ public class MainActivity extends MvpAppCompatActivity implements MainView {
     @InjectPresenter
     MainPresenter mPresenter;
 
+    private TextView mTextView;
+
     /**
      * Provide presenter presented by Dagger to Moxy
      *
@@ -56,6 +59,8 @@ public class MainActivity extends MvpAppCompatActivity implements MainView {
 
         String macAddress = getIntent().getStringExtra(EXTRA_MAC_ADDRESS);
         mPresenter.setMacAddress(macAddress);
+
+        mTextView = findViewById(R.id.device_state_text_view);
     }
 
     @Override
@@ -170,6 +175,14 @@ public class MainActivity extends MvpAppCompatActivity implements MainView {
                         ENABLE_LOCATION_SERVICES_REQUEST_CODE
                 )
         );
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void informDeviceState(int state) {
+        mTextView.setText(state);
     }
 
     //endregion

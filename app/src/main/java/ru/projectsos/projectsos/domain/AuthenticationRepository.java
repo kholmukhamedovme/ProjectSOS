@@ -3,6 +3,7 @@ package ru.projectsos.projectsos.domain;
 import io.reactivex.Completable;
 import io.reactivex.Observable;
 import ru.projectsos.projectsos.models.domain.BluetoothState;
+import ru.projectsos.projectsos.models.domain.DeviceState;
 
 public interface AuthenticationRepository {
 
@@ -21,9 +22,18 @@ public interface AuthenticationRepository {
     Completable authenticateDevice(String macAddress);
 
     /**
-     * Правильно выключиться
-     * Отписаться от горячих источников
+     * Следить за состоянием устройства
+     *
+     * @return возвращает горячий источник
      */
-    void gracefullyShutdown();
+    Observable<DeviceState> traceDeviceState(String macAddress);
+
+    /**
+     * Правильно выключиться
+     * Завершить источники
+     *
+     * @return возвращает завершаемый источник
+     */
+    Completable gracefullyShutdown();
 
 }
