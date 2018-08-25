@@ -16,7 +16,8 @@ import java.util.Arrays;
 import io.reactivex.Completable;
 import io.reactivex.Observable;
 import io.reactivex.subjects.PublishSubject;
-import ru.projectsos.projectsos.domain.AuthenticationRepository;
+import ru.projectsos.projectsos.data.AuthConstants;
+import ru.projectsos.projectsos.domain.AuthRepository;
 import ru.projectsos.projectsos.models.converter.AbstractConverter;
 import ru.projectsos.projectsos.models.converter.RxBleClientStateToBluetoothStateConverter;
 import ru.projectsos.projectsos.models.converter.RxBleConnectionStateToDeviceStateConverter;
@@ -24,17 +25,17 @@ import ru.projectsos.projectsos.models.domain.BluetoothState;
 import ru.projectsos.projectsos.models.domain.DeviceState;
 
 import static dagger.internal.Preconditions.checkNotNull;
-import static ru.projectsos.projectsos.data.Constants.AUTH_BYTE;
-import static ru.projectsos.projectsos.data.Constants.AUTH_CHAR;
-import static ru.projectsos.projectsos.data.Constants.AUTH_REQUEST_RANDOM_KEY_COMMAND;
-import static ru.projectsos.projectsos.data.Constants.AUTH_RESPONSE;
-import static ru.projectsos.projectsos.data.Constants.AUTH_SEND_ENCRYPTED_KEY_COMMAND;
-import static ru.projectsos.projectsos.data.Constants.AUTH_SEND_SECRET_KEY_COMMAND;
-import static ru.projectsos.projectsos.data.Constants.AUTH_SUCCESS;
-import static ru.projectsos.projectsos.data.Constants.SECRET_KEY;
-import static ru.projectsos.projectsos.data.Constants.encryptRandomKeyWithSecretKey;
+import static ru.projectsos.projectsos.data.AuthConstants.AUTH_BYTE;
+import static ru.projectsos.projectsos.data.AuthConstants.AUTH_CHAR;
+import static ru.projectsos.projectsos.data.AuthConstants.AUTH_REQUEST_RANDOM_KEY_COMMAND;
+import static ru.projectsos.projectsos.data.AuthConstants.AUTH_RESPONSE;
+import static ru.projectsos.projectsos.data.AuthConstants.AUTH_SEND_ENCRYPTED_KEY_COMMAND;
+import static ru.projectsos.projectsos.data.AuthConstants.AUTH_SEND_SECRET_KEY_COMMAND;
+import static ru.projectsos.projectsos.data.AuthConstants.AUTH_SUCCESS;
+import static ru.projectsos.projectsos.data.AuthConstants.SECRET_KEY;
+import static ru.projectsos.projectsos.data.AuthConstants.encryptRandomKeyWithSecretKey;
 
-public final class AuthenticationRepositoryImpl implements AuthenticationRepository {
+public final class AuthRepositoryImpl implements AuthRepository {
 
     private static final String AUTHENTICATION_KEY = "authentication";
     private static final PublishSubject<Boolean> DISCONNECT_TRIGGER_SUBJECT = PublishSubject.create();
@@ -54,8 +55,8 @@ public final class AuthenticationRepositoryImpl implements AuthenticationReposit
      * @param rxBleClient       клиент для работы с Bluetooth LE
      * @param sharedPreferences хранилище для настроек
      */
-    public AuthenticationRepositoryImpl(@NonNull RxBleClient rxBleClient,
-                                        @NonNull SharedPreferences sharedPreferences) {
+    public AuthRepositoryImpl(@NonNull RxBleClient rxBleClient,
+                              @NonNull SharedPreferences sharedPreferences) {
         mRxBleClient = checkNotNull(rxBleClient, "RxBleClient is required");
         mSharedPreferences = checkNotNull(sharedPreferences, "SharedPreferences is required");
 
@@ -152,7 +153,7 @@ public final class AuthenticationRepositoryImpl implements AuthenticationReposit
      *
      * @param bytes уведомление в байтах
      * @return завершаемый источник
-     * @see ru.projectsos.projectsos.data.Constants
+     * @see AuthConstants
      */
     private Completable handleNotification(byte[] bytes) {
         if (bytes[0] == AUTH_RESPONSE && bytes[1] == AUTH_SEND_SECRET_KEY_COMMAND && bytes[2] == AUTH_SUCCESS) {
@@ -171,7 +172,7 @@ public final class AuthenticationRepositoryImpl implements AuthenticationReposit
      * Отправить секретный ключ (см. шаг #2)
      *
      * @return завершаемый источник
-     * @see ru.projectsos.projectsos.data.Constants
+     * @see AuthConstants
      */
     private Completable sendSecretKey() {
         byte[] secretKeyWithCommand = ArrayUtils.addAll(new byte[]{AUTH_SEND_SECRET_KEY_COMMAND, AUTH_BYTE}, SECRET_KEY);
@@ -185,7 +186,7 @@ public final class AuthenticationRepositoryImpl implements AuthenticationReposit
      * Запросить случайный ключ (см. шаг #3)
      *
      * @return завершаемый источник
-     * @see ru.projectsos.projectsos.data.Constants
+     * @see AuthConstants
      */
     private Completable requestRandomKey() {
         return mConnectionObservable
@@ -198,7 +199,7 @@ public final class AuthenticationRepositoryImpl implements AuthenticationReposit
      *
      * @param randomKeyResponse уведомление со случайным ключом
      * @return завершаемый источник
-     * @see ru.projectsos.projectsos.data.Constants
+     * @see AuthConstants
      */
     private Completable sendEncryptedKey(byte[] randomKeyResponse) {
         byte[] randomKey = Arrays.copyOfRange(randomKeyResponse, 3, 19);

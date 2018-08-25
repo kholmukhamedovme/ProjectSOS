@@ -5,7 +5,7 @@ import io.reactivex.Observable;
 import ru.projectsos.projectsos.models.domain.BluetoothState;
 import ru.projectsos.projectsos.models.domain.DeviceState;
 
-public interface AuthenticationRepository {
+public interface AuthRepository {
 
     /**
      * Следить за состоянием Bluetooth

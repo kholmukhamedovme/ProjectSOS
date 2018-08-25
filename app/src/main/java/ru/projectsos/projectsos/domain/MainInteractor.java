@@ -9,15 +9,15 @@ import static dagger.internal.Preconditions.checkNotNull;
 
 public final class MainInteractor {
 
-    private final AuthenticationRepository mRepository;
+    private final AuthRepository mRepository;
 
     /**
      * Конструктор
      *
-     * @param authenticationRepository репозиторий для аутентификации
+     * @param authRepository репозиторий для аутентификации
      */
-    public MainInteractor(AuthenticationRepository authenticationRepository) {
-        mRepository = checkNotNull(authenticationRepository, "AuthenticationRepository is required");
+    public MainInteractor(AuthRepository authRepository) {
+        mRepository = checkNotNull(authRepository, "AuthRepository is required");
     }
 
     /**

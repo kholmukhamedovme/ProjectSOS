@@ -56,7 +56,7 @@ import javax.crypto.spec.SecretKeySpec;
  * <h3>Последующие авторизации</h3>
  * Все последующие авторизации отличаются лишь отсутствием шага #2.
  */
-public final class Constants {
+public final class AuthConstants {
 
     /**
      * Секретный ключ
