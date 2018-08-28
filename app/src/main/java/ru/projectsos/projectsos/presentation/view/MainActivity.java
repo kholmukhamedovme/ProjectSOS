@@ -27,6 +27,9 @@ public class MainActivity extends MvpAppCompatActivity implements MainView {
 
     public static final String EXTRA_MAC_ADDRESS = "extra_mac_address";
 
+    private static final String FARRUKHS_MIBAND2_MAC_ADDRESS = "F2:BD:A9:26:44:A6";
+    private static final String SMARTBAND_MAC_ADDRESS = "EA:8F:43:E4:8B:AE";
+
     private static final int ENABLE_BLUETOOTH_REQUEST_CODE = 1;
     private static final int GRANT_LOCATION_PERMISSION_REQUEST_CODE = 2;
     private static final int ENABLE_LOCATION_SERVICES_REQUEST_CODE = 3;
@@ -53,8 +56,8 @@ public class MainActivity extends MvpAppCompatActivity implements MainView {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        //region FIXME: Make launcher activity that gets MAC address of SMARTBAND device dynamically
-        getIntent().putExtra(EXTRA_MAC_ADDRESS, "EA:8F:43:E4:8B:AE");
+        //region FIXME: Make launcher activity that gets MAC address of device dynamically
+        getIntent().putExtra(EXTRA_MAC_ADDRESS, FARRUKHS_MIBAND2_MAC_ADDRESS);
         //endregion
 
         String macAddress = getIntent().getStringExtra(EXTRA_MAC_ADDRESS);

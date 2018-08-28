@@ -2,7 +2,6 @@ package ru.projectsos.projectsos.data.repository;
 
 import android.content.SharedPreferences;
 import android.support.annotation.NonNull;
-import android.util.Log;
 
 import com.jakewharton.rx.ReplayingShare;
 import com.polidea.rxandroidble2.RxBleClient;
@@ -16,7 +15,6 @@ import java.util.Arrays;
 import io.reactivex.Completable;
 import io.reactivex.Observable;
 import io.reactivex.subjects.PublishSubject;
-import ru.projectsos.projectsos.data.AuthConstants;
 import ru.projectsos.projectsos.domain.AuthRepository;
 import ru.projectsos.projectsos.models.converter.AbstractConverter;
 import ru.projectsos.projectsos.models.converter.RxBleClientStateToBluetoothStateConverter;
@@ -28,10 +26,8 @@ import static dagger.internal.Preconditions.checkNotNull;
 import static ru.projectsos.projectsos.data.AuthConstants.AUTH_BYTE;
 import static ru.projectsos.projectsos.data.AuthConstants.AUTH_CHAR;
 import static ru.projectsos.projectsos.data.AuthConstants.AUTH_REQUEST_RANDOM_KEY_COMMAND;
-import static ru.projectsos.projectsos.data.AuthConstants.AUTH_RESPONSE;
 import static ru.projectsos.projectsos.data.AuthConstants.AUTH_SEND_ENCRYPTED_KEY_COMMAND;
 import static ru.projectsos.projectsos.data.AuthConstants.AUTH_SEND_SECRET_KEY_COMMAND;
-import static ru.projectsos.projectsos.data.AuthConstants.AUTH_SUCCESS;
 import static ru.projectsos.projectsos.data.AuthConstants.SECRET_KEY;
 import static ru.projectsos.projectsos.data.AuthConstants.encryptRandomKeyWithSecretKey;
 
@@ -91,14 +87,76 @@ public final class AuthRepositoryImpl implements AuthRepository {
      * {@inheritDoc}
      */
     @Override
-    public Completable authenticateDevice(String macAddress) {
+    public Observable<byte[]> setupNotification(String macAddress) {
         initConnectionObservable(macAddress);
 
         return mConnectionObservable
                 .flatMap(rxBleConnection -> rxBleConnection.setupNotification(AUTH_CHAR))
-                .mergeWith(isFirstAuthentication() ? sendSecretKey() : requestRandomKey())
-                .flatMap(observable -> observable)
-                .flatMapCompletable(this::handleNotification);
+                .flatMap(observable -> observable);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public boolean isFirstAuthentication() {
+        return !mSharedPreferences.getBoolean(AUTHENTICATION_KEY, false);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Completable sendSecretKey() {
+        byte[] secretKeyWithCommand = ArrayUtils.addAll(new byte[]{AUTH_SEND_SECRET_KEY_COMMAND, AUTH_BYTE}, SECRET_KEY);
+
+        return mConnectionObservable
+                .flatMapSingle(rxBleConnection -> rxBleConnection.writeCharacteristic(AUTH_CHAR, secretKeyWithCommand))
+                .ignoreElements();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Completable requestRandomKey() {
+        return mConnectionObservable
+                .flatMapSingle(rxBleConnection -> rxBleConnection.writeCharacteristic(AUTH_CHAR, new byte[]{AUTH_REQUEST_RANDOM_KEY_COMMAND, AUTH_BYTE}))
+                .ignoreElements();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public Completable sendEncryptedKey(byte[] randomKeyResponse) {
+        byte[] randomKey = Arrays.copyOfRange(randomKeyResponse, 3, 19);
+        byte[] encryptedRandomKey = encryptRandomKeyWithSecretKey(randomKey);
+        byte[] dataToSend = ArrayUtils.addAll(new byte[]{AUTH_SEND_ENCRYPTED_KEY_COMMAND, AUTH_BYTE}, encryptedRandomKey);
+
+        return mConnectionObservable
+                .flatMapSingle(rxBleConnection -> rxBleConnection.writeCharacteristic(AUTH_CHAR, dataToSend))
+                .ignoreElements();
+    }
+
+    /**
+     * Процедура после первой аутентификации устройства
+     * Сохраняет флаг о прохождении первой аутентификации и сопрягается с устройством
+     *
+     * @return завершаемый источник
+     */
+    @Override
+    public Completable afterFirstAuthentication() {
+        return Completable.fromAction(() -> {
+            if (isFirstAuthentication()) {
+                mSharedPreferences
+                        .edit()
+                        .putBoolean(AUTHENTICATION_KEY, true)
+                        .apply();
+
+                mDevice.getBluetoothDevice().createBond();
+            }
+        });
     }
 
     /**
@@ -146,97 +204,6 @@ public final class AuthRepositoryImpl implements AuthRepository {
                     .takeUntil(DISCONNECT_TRIGGER_SUBJECT)
                     .compose(ReplayingShare.instance());
         }
-    }
-
-    /**
-     * Управлять уведомлениями
-     *
-     * @param bytes уведомление в байтах
-     * @return завершаемый источник
-     * @see AuthConstants
-     */
-    private Completable handleNotification(byte[] bytes) {
-        if (bytes[0] == AUTH_RESPONSE && bytes[1] == AUTH_SEND_SECRET_KEY_COMMAND && bytes[2] == AUTH_SUCCESS) {
-            return requestRandomKey();
-        } else if (bytes[0] == AUTH_RESPONSE && bytes[1] == AUTH_REQUEST_RANDOM_KEY_COMMAND && bytes[2] == AUTH_SUCCESS) {
-            return sendEncryptedKey(bytes);
-        } else if (bytes[0] == AUTH_RESPONSE && bytes[1] == AUTH_SEND_ENCRYPTED_KEY_COMMAND && bytes[2] == AUTH_SUCCESS) {
-            Log.d("PROJECT_SOS", "AUTHENTICATED");
-            return afterFirstAuthentication();
-        } else {
-            return Completable.error(new IllegalArgumentException("UNKNOWN: " + Arrays.toString(bytes)));
-        }
-    }
-
-    /**
-     * Отправить секретный ключ (см. шаг #2)
-     *
-     * @return завершаемый источник
-     * @see AuthConstants
-     */
-    private Completable sendSecretKey() {
-        byte[] secretKeyWithCommand = ArrayUtils.addAll(new byte[]{AUTH_SEND_SECRET_KEY_COMMAND, AUTH_BYTE}, SECRET_KEY);
-
-        return mConnectionObservable
-                .flatMapSingle(rxBleConnection -> rxBleConnection.writeCharacteristic(AUTH_CHAR, secretKeyWithCommand))
-                .ignoreElements();
-    }
-
-    /**
-     * Запросить случайный ключ (см. шаг #3)
-     *
-     * @return завершаемый источник
-     * @see AuthConstants
-     */
-    private Completable requestRandomKey() {
-        return mConnectionObservable
-                .flatMapSingle(rxBleConnection -> rxBleConnection.writeCharacteristic(AUTH_CHAR, new byte[]{AUTH_REQUEST_RANDOM_KEY_COMMAND, AUTH_BYTE}))
-                .ignoreElements();
-    }
-
-    /**
-     * Отправка зашифрованного ключа (см. шаг #4)
-     *
-     * @param randomKeyResponse уведомление со случайным ключом
-     * @return завершаемый источник
-     * @see AuthConstants
-     */
-    private Completable sendEncryptedKey(byte[] randomKeyResponse) {
-        byte[] randomKey = Arrays.copyOfRange(randomKeyResponse, 3, 19);
-        byte[] encryptedRandomKey = encryptRandomKeyWithSecretKey(randomKey);
-        byte[] dataToSend = ArrayUtils.addAll(new byte[]{AUTH_SEND_ENCRYPTED_KEY_COMMAND, AUTH_BYTE}, encryptedRandomKey);
-
-        return mConnectionObservable
-                .flatMapSingle(rxBleConnection -> rxBleConnection.writeCharacteristic(AUTH_CHAR, dataToSend))
-                .ignoreElements();
-    }
-
-    /**
-     * Процедура после первой аутентификации устройства
-     * Сохраняет флаг о прохождении первой аутентификации и сопрягается с устройством
-     *
-     * @return завершаемый источник
-     */
-    private Completable afterFirstAuthentication() {
-        return Completable.fromAction(() -> {
-            if (isFirstAuthentication()) {
-                mSharedPreferences
-                        .edit()
-                        .putBoolean(AUTHENTICATION_KEY, true)
-                        .apply();
-
-                mDevice.getBluetoothDevice().createBond();
-            }
-        });
-    }
-
-    /**
-     * Проверка на первую аутентификацию устройства
-     *
-     * @return {@code true} если это первая аутентификация, иначе {@code false}
-     */
-    private boolean isFirstAuthentication() {
-        return !mSharedPreferences.getBoolean(AUTHENTICATION_KEY, false);
     }
 
 }
