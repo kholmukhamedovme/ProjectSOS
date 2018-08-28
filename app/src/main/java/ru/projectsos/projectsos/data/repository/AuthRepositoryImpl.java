@@ -68,6 +68,17 @@ public final class AuthRepositoryImpl implements AuthRepository {
      * {@inheritDoc}
      */
     @Override
+    public Observable<DeviceState> traceDeviceState(String macAddress) {
+        initDevice(macAddress);
+
+        return mDevice.observeConnectionStateChanges()
+                .map(mDeviceStateConverter::convert);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public Observable<BluetoothState> traceBluetoothState() {
         initStateChangesObservable();
 
@@ -94,19 +105,19 @@ public final class AuthRepositoryImpl implements AuthRepository {
      * {@inheritDoc}
      */
     @Override
-    public Observable<DeviceState> traceDeviceState(String macAddress) {
-        initDevice(macAddress);
-
-        return mDevice.observeConnectionStateChanges()
-                .map(mDeviceStateConverter::convert);
+    public Completable gracefullyShutdown() {
+        return Completable.fromAction(() -> DISCONNECT_TRIGGER_SUBJECT.onNext(true));
     }
 
     /**
-     * {@inheritDoc}
+     * Инициализировать объект устройства
+     *
+     * @param macAddress MAC адрес
      */
-    @Override
-    public Completable gracefullyShutdown() {
-        return Completable.fromAction(() -> DISCONNECT_TRIGGER_SUBJECT.onNext(true));
+    private void initDevice(String macAddress) {
+        if (mDevice == null) {
+            mDevice = mRxBleClient.getBleDevice(macAddress);
+        }
     }
 
     /**
@@ -134,17 +145,6 @@ public final class AuthRepositoryImpl implements AuthRepository {
                     .establishConnection(false)
                     .takeUntil(DISCONNECT_TRIGGER_SUBJECT)
                     .compose(ReplayingShare.instance());
-        }
-    }
-
-    /**
-     * Инициализировать объект устройства
-     *
-     * @param macAddress MAC адрес
-     */
-    private void initDevice(String macAddress) {
-        if (mDevice == null) {
-            mDevice = mRxBleClient.getBleDevice(macAddress);
         }
     }
 

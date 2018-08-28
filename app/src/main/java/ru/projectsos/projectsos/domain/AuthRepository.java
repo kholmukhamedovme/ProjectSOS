@@ -8,6 +8,13 @@ import ru.projectsos.projectsos.models.domain.DeviceState;
 public interface AuthRepository {
 
     /**
+     * Следить за состоянием устройства
+     *
+     * @return возвращает горячий источник
+     */
+    Observable<DeviceState> traceDeviceState(String macAddress);
+
+    /**
      * Следить за состоянием Bluetooth
      *
      * @return возвращает горячий источник
@@ -20,13 +27,6 @@ public interface AuthRepository {
      * @return возвращает завершаемый источник
      */
     Completable authenticateDevice(String macAddress);
-
-    /**
-     * Следить за состоянием устройства
-     *
-     * @return возвращает горячий источник
-     */
-    Observable<DeviceState> traceDeviceState(String macAddress);
 
     /**
      * Правильно выключиться
