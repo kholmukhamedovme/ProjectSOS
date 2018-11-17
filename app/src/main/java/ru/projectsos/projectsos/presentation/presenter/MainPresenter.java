@@ -1,5 +1,6 @@
 package ru.projectsos.projectsos.presentation.presenter;
 
+import android.os.Handler;
 import android.support.annotation.NonNull;
 import android.util.Log;
 
@@ -7,6 +8,7 @@ import com.arellomobile.mvp.InjectViewState;
 
 import java.util.Arrays;
 
+import io.reactivex.Completable;
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.schedulers.Schedulers;
 import ru.projectsos.projectsos.R;
@@ -156,10 +158,68 @@ public final class MainPresenter extends BasePresenter<MainView> {
                 mInteractor.afterFirstAuthentication()
                         .subscribeOn(Schedulers.io())
                         .observeOn(AndroidSchedulers.mainThread())
+                        .subscribe(this::turnOffCurrentHeartMonitorMeasurementAndEnableGyroscopeAndHeartRawData, this::onError)
+        );
+    }
+
+    private void turnOffCurrentHeartMonitorMeasurementAndEnableGyroscopeAndHeartRawData() {
+        getCompositeDisposable().addAll(
+                Completable.mergeArray(
+                        mInteractor.turnOffCurrentHeartMonitorMeasurement(),
+                        mInteractor.enableGyroscopeAndHeartRawData()
+                )
+                        .subscribeOn(Schedulers.io())
+                        .observeOn(AndroidSchedulers.mainThread())
                         .subscribe(() -> {
-                            // TODO: Parse data
+                            Log.d(TAG, "turnOffCurrentHeartMonitorMeasurementAndEnableGyroscopeAndHeartRawData");
+                            setupNotificationForHRM();
                         }, this::onError)
         );
+    }
+
+    private void setupNotificationForHRM() {
+        getCompositeDisposable().add(
+                mInteractor.setupNotificationForHRM()
+                        .doOnSubscribe(disposable -> doOnSubscribeSetupNotificationForHRM())
+                        .subscribeOn(Schedulers.io())
+                        .observeOn(AndroidSchedulers.mainThread())
+                        .subscribe(bytes -> {
+                            Log.d(TAG, "Setup notifications for HRM");
+                            onSetupNotificationForHRM(bytes);
+                        }, this::onError)
+        );
+    }
+
+    private void doOnSubscribeSetupNotificationForHRM() {
+        getCompositeDisposable().add(
+                Completable.concatArray(
+                        mInteractor.startContinuousMeasurements(),
+                        mInteractor.sendUnknownButNecessaryCommand()
+                )
+                        .subscribeOn(Schedulers.io())
+                        .observeOn(AndroidSchedulers.mainThread())
+                        .subscribe(this::doAfterOnSubscribeSetupNotificationForHRM, this::onError)
+        );
+    }
+
+    private void doAfterOnSubscribeSetupNotificationForHRM() {
+        Handler handler = new Handler();
+
+        Runnable runnable = new Runnable() {
+            @Override
+            public void run() {
+                MainPresenter.this.getCompositeDisposable().add(
+                        mInteractor.ping()
+                                .subscribeOn(Schedulers.io())
+                                .observeOn(AndroidSchedulers.mainThread())
+                                .subscribe(() -> Log.d(TAG, "Pinged"), MainPresenter.this::onError)
+                );
+
+                handler.postDelayed(this, 12000);
+            }
+        };
+
+        handler.post(runnable);
     }
 
     /**
@@ -248,6 +308,10 @@ public final class MainPresenter extends BasePresenter<MainView> {
         }
     }
 
+    private void onSetupNotificationForHRM(byte[] bytes) {
+        Log.d(TAG, printBytes(bytes));
+    }
+
     /**
      * Реагирование на ошибку
      *
@@ -255,6 +319,18 @@ public final class MainPresenter extends BasePresenter<MainView> {
      */
     private void onError(Throwable throwable) {
         Log.e(TAG, throwable.getLocalizedMessage(), throwable);
+    }
+
+    private String printBytes(byte[] bytes) {
+        StringBuilder sb = new StringBuilder();
+
+        sb.append("[ ");
+        for (byte b : bytes) {
+            sb.append(String.format("%02X ", b));
+        }
+        sb.append("]");
+
+        return sb.toString();
     }
 
 }

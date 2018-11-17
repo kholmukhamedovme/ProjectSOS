@@ -14,8 +14,9 @@ import java.util.Arrays;
 
 import io.reactivex.Completable;
 import io.reactivex.Observable;
+import io.reactivex.functions.Consumer;
 import io.reactivex.subjects.PublishSubject;
-import ru.projectsos.projectsos.domain.AuthRepository;
+import ru.projectsos.projectsos.domain.Repository;
 import ru.projectsos.projectsos.models.converter.AbstractConverter;
 import ru.projectsos.projectsos.models.converter.RxBleClientStateToBluetoothStateConverter;
 import ru.projectsos.projectsos.models.converter.RxBleConnectionStateToDeviceStateConverter;
@@ -30,10 +31,19 @@ import static ru.projectsos.projectsos.data.AuthConstants.AUTH_SEND_ENCRYPTED_KE
 import static ru.projectsos.projectsos.data.AuthConstants.AUTH_SEND_SECRET_KEY_COMMAND;
 import static ru.projectsos.projectsos.data.AuthConstants.SECRET_KEY;
 import static ru.projectsos.projectsos.data.AuthConstants.encryptRandomKeyWithSecretKey;
+import static ru.projectsos.projectsos.data.HeartRateConstants.ENABLE_GYROSCOPE_AND_HEART_RAW_DATA_COMMAND;
+import static ru.projectsos.projectsos.data.HeartRateConstants.HMC_CHAR;
+import static ru.projectsos.projectsos.data.HeartRateConstants.HRM_CHAR;
+import static ru.projectsos.projectsos.data.HeartRateConstants.PING_COMMAND;
+import static ru.projectsos.projectsos.data.HeartRateConstants.SENSOR_CHAR;
+import static ru.projectsos.projectsos.data.HeartRateConstants.START_CONTINUOUS_MEASUREMENTS_COMMAND;
+import static ru.projectsos.projectsos.data.HeartRateConstants.TURN_OFF_CONTINUOUS_MEASUREMENTS_COMMAND;
+import static ru.projectsos.projectsos.data.HeartRateConstants.TURN_OFF_ONE_SHOT_MEASUREMENTS_COMMAND;
+import static ru.projectsos.projectsos.data.HeartRateConstants.UNKNOWN_BUT_NECESSARY_COMMAND;
 
-public final class AuthRepositoryImpl implements AuthRepository {
+public final class RepositoryImpl implements Repository {
 
-    private static final String AUTHENTICATION_KEY = "authentication";
+    private static final String AUTHENTICATION_KEY = "is_authenticated_before";
     private static final PublishSubject<Boolean> DISCONNECT_TRIGGER_SUBJECT = PublishSubject.create();
 
     private final RxBleClient mRxBleClient;
@@ -51,14 +61,16 @@ public final class AuthRepositoryImpl implements AuthRepository {
      * @param rxBleClient       клиент для работы с Bluetooth LE
      * @param sharedPreferences хранилище для настроек
      */
-    public AuthRepositoryImpl(@NonNull RxBleClient rxBleClient,
-                              @NonNull SharedPreferences sharedPreferences) {
+    public RepositoryImpl(@NonNull RxBleClient rxBleClient,
+                          @NonNull SharedPreferences sharedPreferences) {
         mRxBleClient = checkNotNull(rxBleClient, "RxBleClient is required");
         mSharedPreferences = checkNotNull(sharedPreferences, "SharedPreferences is required");
 
         mBluetoothStateConverter = new RxBleClientStateToBluetoothStateConverter();
         mDeviceStateConverter = new RxBleConnectionStateToDeviceStateConverter();
     }
+
+    //region Repository
 
     /**
      * {@inheritDoc}
@@ -166,6 +178,59 @@ public final class AuthRepositoryImpl implements AuthRepository {
     public Completable gracefullyShutdown() {
         return Completable.fromAction(() -> DISCONNECT_TRIGGER_SUBJECT.onNext(true));
     }
+
+    //endregion
+
+    //region HeartRateRepository
+
+    @Override
+    public Completable turnOffCurrentHeartMonitorMeasurement() {
+        return Completable.mergeArray(
+                mConnectionObservable
+                        .flatMapSingle(rxBleConnection -> rxBleConnection.writeCharacteristic(HMC_CHAR, TURN_OFF_ONE_SHOT_MEASUREMENTS_COMMAND))
+                        .ignoreElements(),
+                mConnectionObservable
+                        .flatMapSingle(rxBleConnection -> rxBleConnection.writeCharacteristic(HMC_CHAR, TURN_OFF_CONTINUOUS_MEASUREMENTS_COMMAND))
+                        .ignoreElements()
+        );
+    }
+
+    @Override
+    public Completable enableGyroscopeAndHeartRawData() {
+        return mConnectionObservable
+                .flatMapSingle(rxBleConnection -> rxBleConnection.writeCharacteristic(SENSOR_CHAR, ENABLE_GYROSCOPE_AND_HEART_RAW_DATA_COMMAND))
+                .ignoreElements();
+    }
+
+    @Override
+    public Observable<byte[]> setupNotificationForHRM() {
+        return mConnectionObservable
+                .flatMap(rxBleConnection -> rxBleConnection.setupNotification(HRM_CHAR))
+                .flatMap(observable -> observable);
+    }
+
+    @Override
+    public Completable startContinuousMeasurements() {
+        return mConnectionObservable
+                .flatMapSingle(rxBleConnection -> rxBleConnection.writeCharacteristic(HMC_CHAR, START_CONTINUOUS_MEASUREMENTS_COMMAND))
+                .ignoreElements();
+    }
+
+    @Override
+    public Completable sendUnknownButNecessaryCommand() {
+        return mConnectionObservable
+                .flatMapSingle(rxBleConnection -> rxBleConnection.writeCharacteristic(SENSOR_CHAR, UNKNOWN_BUT_NECESSARY_COMMAND))
+                .ignoreElements();
+    }
+
+    @Override
+    public Completable ping() {
+        return mConnectionObservable
+                .flatMapSingle(rxBleConnection -> rxBleConnection.writeCharacteristic(HMC_CHAR, PING_COMMAND))
+                .ignoreElements();
+    }
+
+    //endregion
 
     /**
      * Инициализировать объект устройства

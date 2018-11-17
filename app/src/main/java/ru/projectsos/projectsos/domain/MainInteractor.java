@@ -10,15 +10,15 @@ import static dagger.internal.Preconditions.checkNotNull;
 
 public final class MainInteractor {
 
-    private final AuthRepository mRepository;
+    private final Repository mRepository;
 
     /**
      * Конструктор
      *
-     * @param authRepository репозиторий для аутентификации
+     * @param repository репозиторий для аутентификации
      */
-    public MainInteractor(AuthRepository authRepository) {
-        mRepository = checkNotNull(authRepository, "AuthRepository is required");
+    public MainInteractor(Repository repository) {
+        mRepository = checkNotNull(repository, "Repository is required");
     }
 
     /**
@@ -108,6 +108,30 @@ public final class MainInteractor {
      */
     public Completable gracefullyShutdown() {
         return mRepository.gracefullyShutdown();
+    }
+
+    public Completable turnOffCurrentHeartMonitorMeasurement() {
+        return mRepository.turnOffCurrentHeartMonitorMeasurement();
+    }
+
+    public Completable enableGyroscopeAndHeartRawData() {
+        return mRepository.enableGyroscopeAndHeartRawData();
+    }
+
+    public Observable<byte[]> setupNotificationForHRM() {
+        return mRepository.setupNotificationForHRM();
+    }
+
+    public Completable startContinuousMeasurements() {
+        return mRepository.startContinuousMeasurements();
+    }
+
+    public Completable sendUnknownButNecessaryCommand() {
+        return mRepository.sendUnknownButNecessaryCommand();
+    }
+
+    public Completable ping() {
+        return mRepository.ping();
     }
 
 }

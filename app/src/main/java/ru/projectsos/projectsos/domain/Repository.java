@@ -6,7 +6,7 @@ import ru.projectsos.projectsos.data.AuthConstants;
 import ru.projectsos.projectsos.models.domain.BluetoothState;
 import ru.projectsos.projectsos.models.domain.DeviceState;
 
-public interface AuthRepository {
+public interface Repository {
 
     /**
      * Следить за состоянием устройства
@@ -77,5 +77,17 @@ public interface AuthRepository {
      * @return возвращает завершаемый источник
      */
     Completable gracefullyShutdown();
+
+    Completable turnOffCurrentHeartMonitorMeasurement();
+
+    Completable enableGyroscopeAndHeartRawData();
+
+    Observable<byte[]> setupNotificationForHRM();
+
+    Completable startContinuousMeasurements();
+
+    Completable sendUnknownButNecessaryCommand();
+
+    Completable ping();
 
 }
